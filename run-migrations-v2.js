@@ -19,27 +19,39 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   process.exit(1);
 }
 
+// Extract project ref from URL
+const projectRef = SUPABASE_URL.replace('https://', '').split('.')[0];
+
 /**
- * Execute SQL directly via Supabase REST API
+ * Execute SQL using Supabase Management API
  */
 async function executeSQL(sql) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+  // Try using pg_net to execute SQL
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'apikey': SERVICE_KEY,
       'Authorization': `Bearer ${SERVICE_KEY}`,
-      'Prefer': 'return=representation'
+      'Prefer': 'return=minimal'
     },
-    body: JSON.stringify({ query: sql })
+    body: JSON.stringify({
+      query: sql
+    })
   });
 
   if (!response.ok) {
     const text = await response.text();
+    
+    // If the error is about missing function, provide manual instructions
+    if (text.includes('PGRST202')) {
+      return { error: 'RPC_NOT_AVAILABLE', message: text };
+    }
+    
     throw new Error(`SQL execution failed: ${response.status} - ${text}`);
   }
 
-  return response;
+  return { success: true };
 }
 
 /**
@@ -56,41 +68,40 @@ async function runMigrations() {
       .filter(file => file.endsWith('.sql'))
       .sort(); // Sort by filename (timestamp)
 
-    console.log(`📂 Found ${migrationFiles.length} migration file(s):\n`);
-    migrationFiles.forEach(file => console.log(`   - ${file}`));
-    console.log();
+    console.log(`📂 Found ${migrationFiles.length} migration file(s)\n`);
 
-    // Run each migration in order
+    // Since direct SQL execution isn't available through REST API,
+    // we'll need to use the Supabase Dashboard SQL Editor
+    console.log('⚠️  Note: Supabase REST API does not support direct SQL execution.\n');
+    console.log('Please run these migrations manually in the Supabase SQL Editor:\n');
+    console.log(`🔗 https://supabase.com/dashboard/project/${projectRef}/sql/new\n`);
+    console.log('─'.repeat(80));
+    console.log('\nCopy and paste each migration file below:\n');
+    console.log('─'.repeat(80));
+
+    // Display each migration file content
     for (const filename of migrationFiles) {
-      console.log(`▶️  Running: ${filename}...`);
+      console.log(`\n📄 ${filename}`);
+      console.log('─'.repeat(80));
       
       const filePath = path.join(migrationsDir, filename);
       const sql = fs.readFileSync(filePath, 'utf8');
       
-      try {
-        await executeSQL(sql);
-        console.log(`✅ Success: ${filename}\n`);
-      } catch (error) {
-        console.error(`❌ Failed: ${filename}`);
-        console.error(`   Error: ${error.message}\n`);
-        
-        // Continue with other migrations even if one fails
-        // This allows idempotent migrations to succeed
-        console.log('   Continuing with next migration...\n');
-      }
+      console.log(sql);
+      console.log('\n' + '─'.repeat(80));
     }
 
-    console.log('✨ All migrations completed!\n');
-    console.log('🎉 Your database is now set up and ready to use.');
-    console.log(`\n📊 View your database: ${SUPABASE_URL.replace('https://', 'https://supabase.com/dashboard/project/')}`);
-    
+    console.log('\n\n✅ Instructions:');
+    console.log('1. Open the SQL Editor: https://supabase.com/dashboard/project/' + projectRef + '/sql/new');
+    console.log('2. Copy each migration above (in order) and run them one by one');
+    console.log('3. Make sure all migrations complete successfully\n');
+
   } catch (error) {
-    console.error('\n💥 Migration process failed:');
+    console.error('\n💥 Error reading migration files:');
     console.error(error);
-    console.log('\n📝 You can also run migrations manually in the Supabase SQL Editor:');
-    console.log(`   ${SUPABASE_URL}/project/${SUPABASE_URL.split('.')[0].split('//')[1]}/sql/new`);
     process.exit(1);
   }
 }
 
 runMigrations();
+

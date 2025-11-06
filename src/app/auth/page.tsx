@@ -17,6 +17,8 @@ export default function AuthPage() {
   const [clubDescription, setClubDescription] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showResendEmail, setShowResendEmail] = useState(false);
 
   const supabase = createClient();
 
@@ -40,17 +42,35 @@ export default function AuthPage() {
     e.preventDefault();
     try {
       setError('');
+      setSuccessMessage('');
       setLoading(true);
 
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/courts`,
+          },
         });
 
         if (error) throw error;
 
-        if (data.user) {
+        // Check if email confirmation is required
+        if (data.user && !data.session) {
+          // Email confirmation is required
+          setSuccessMessage('Conta criada! Verifique seu email para confirmar o cadastro antes de fazer login.');
+          setEmail('');
+          setPassword('');
+          setFullName('');
+          setClubName('');
+          setClubDescription('');
+          setIsSignUp(false); // Switch back to login mode
+          return;
+        }
+
+        // If we have a session, create profile and redirect
+        if (data.user && data.session) {
           const { error: profileError } = await supabase.from('profiles').insert({
             id: data.user.id,
             full_name: fullName,
@@ -59,24 +79,69 @@ export default function AuthPage() {
             club_description: isClubOwner ? clubDescription : null,
           });
 
-          if (profileError) throw profileError;
-        }
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            // Don't throw error, profile might already exist
+          }
 
-        router.push(isClubOwner ? '/owner/dashboard' : '/courts');
+          router.push(isClubOwner ? '/owner/dashboard' : '/courts');
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        
+        if (error) {
+          // Better error messages
+          if (error.message.includes('Email not confirmed')) {
+            setShowResendEmail(true);
+            throw new Error('Email não confirmado. Verifique sua caixa de entrada e confirme seu email antes de fazer login.');
+          }
+          throw error;
+        }
+        
+        setShowResendEmail(false);
 
-        const { data: profile } = await supabase
+        // Create profile if it doesn't exist
+        const { data: existingProfile } = await supabase
           .from('profiles')
           .select('user_role')
           .eq('id', data.user.id)
           .maybeSingle();
 
+        if (!existingProfile) {
+          // Create a basic profile if it doesn't exist
+          await supabase.from('profiles').insert({
+            id: data.user.id,
+            full_name: data.user.email?.split('@')[0] || 'Usuário',
+            user_role: 'user',
+          });
+        }
+
+        const profile = existingProfile || { user_role: 'user' };
         router.push(profile?.user_role === 'club_owner' ? '/owner/dashboard' : '/courts');
       }
     } catch (err: any) {
       setError(err.message || 'Erro na autenticação');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    try {
+      setError('');
+      setLoading(true);
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) throw error;
+
+      setSuccessMessage('Email de confirmação reenviado! Verifique sua caixa de entrada.');
+      setShowResendEmail(false);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao reenviar email');
     } finally {
       setLoading(false);
     }
@@ -225,7 +290,24 @@ export default function AuthPage() {
             </div>
 
             {error && (
-              <p className="text-red-500 text-sm text-center">{error}</p>
+              <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl space-y-2">
+                <p className="text-red-600 dark:text-red-400 text-sm text-center">{error}</p>
+                {showResendEmail && (
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    className="w-full text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium underline"
+                  >
+                    Reenviar email de confirmação
+                  </button>
+                )}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center font-medium">{successMessage}</p>
+              </div>
             )}
 
             <button

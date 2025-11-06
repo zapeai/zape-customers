@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { MapPin, Star, Search, SlidersHorizontal, LogIn } from 'lucide-react';
+import { MapPin, Star, Search, SlidersHorizontal } from 'lucide-react';
 
 interface Court {
   id: string;
@@ -150,35 +150,9 @@ export default function CourtsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-16">
+      <div className="sticky top-16 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <span className="text-2xl">🏟️</span>
-              </div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">QuadraJá</h1>
-            </Link>
-            {!user && (
-              <Link
-                href="/auth"
-                className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
-              >
-                <LogIn className="w-4 h-4" />
-                Entrar
-              </Link>
-            )}
-            {user && (
-              <Link
-                href="/bookings"
-                className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
-              >
-                Minhas Reservas
-              </Link>
-            )}
-          </div>
-
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
