@@ -6,17 +6,17 @@ on:
     branches:
       - main
     paths:
-      - 'supabase/migrations/**'
-      - 'run-migrations-pg.js'
-      - '.github/workflows/deploy-migrations.yml'
+      - "supabase/migrations/**"
+      - "run-migrations-pg.js"
+      - ".github/workflows/deploy-migrations.yml"
 
   # Allow manual workflow dispatch for emergency deployments
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason for manual deployment'
+        description: "Reason for manual deployment"
         required: false
-        default: 'Manual migration deployment'
+        default: "Manual migration deployment"
 
 # Ensure only one migration runs at a time
 concurrency:
@@ -27,14 +27,14 @@ jobs:
   migrate:
     name: Run Database Migrations
     runs-on: ubuntu-latest
-    
+
     # Set a timeout to prevent hanging jobs
     timeout-minutes: 10
-    
+
     environment:
       name: production
       url: https://supabase.com/dashboard/project/${{ secrets.SUPABASE_PROJECT_REF }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -68,8 +68,8 @@ jobs:
         if: steps.check_changes.outputs.has_changes == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: 📦 Install dependencies
         if: steps.check_changes.outputs.has_changes == 'true'
@@ -81,13 +81,13 @@ jobs:
           # Create .env file from secrets
           echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
-          
+
           # Verify .env was created
           if [ ! -f .env ]; then
             echo "Error: .env file not created"
             exit 1
           fi
-          
+
           echo "✅ Environment configured"
 
       - name: 🗃️ List migrations to be run
@@ -135,13 +135,13 @@ jobs:
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ All migrations applied successfully" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Migration failed - please check logs" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📂 Migration Files" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
@@ -155,4 +155,3 @@ jobs:
           echo "## 🗃️ Database Migration Skipped" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "No changes to migration files detected in this push." >> $GITHUB_STEP_SUMMARY
-
