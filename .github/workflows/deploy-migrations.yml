@@ -7,7 +7,6 @@ on:
       - main
     paths:
       - "supabase/migrations/**"
-      - "run-migrations-pg.js"
       - ".github/workflows/deploy-migrations.yml"
 
   # Allow manual workflow dispatch for emergency deployments
@@ -63,31 +62,11 @@ jobs:
           echo "Changed files in this push:"
           git diff --name-only ${{ github.event.before }} ${{ github.sha }} || echo "Initial commit or manual trigger"
 
-      - name: 🔧 Setup Node.js
+      - name: 🔧 Setup Supabase CLI
         if: steps.check_changes.outputs.has_changes == 'true'
-        uses: actions/setup-node@v4
+        uses: supabase/setup-cli@v1
         with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: 📦 Install dependencies
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: npm ci --only=production
-
-      - name: 🔐 Prepare environment
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          # Create .env file from secrets
-          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
-          echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
-
-          # Verify .env was created
-          if [ ! -f .env ]; then
-            echo "Error: .env file not created"
-            exit 1
-          fi
-
-          echo "✅ Environment configured"
+          version: latest
 
       - name: 🗃️ List migrations to be run
         if: steps.check_changes.outputs.has_changes == 'true'
@@ -95,24 +74,31 @@ jobs:
           echo "📂 Migration files found:"
           ls -la supabase/migrations/ || echo "No migrations directory"
           echo ""
-          echo "Migration files to be executed:"
+          echo "Migration files:"
           find supabase/migrations -name "*.sql" | sort
+
+      - name: 🔐 Link Supabase project
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "Linking to Supabase project..."
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: 🚀 Run database migrations
         if: steps.check_changes.outputs.has_changes == 'true'
         id: migrate
         run: |
-          echo "Starting migration process..."
-          node run-migrations-pg.js
+          echo "Starting migration process with Supabase CLI..."
+          supabase db push --linked
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: ✅ Migration success
         if: success() && steps.check_changes.outputs.has_changes == 'true'
         run: |
           echo "✨ Database migrations completed successfully!"
-          echo "Deployed to: ${{ secrets.SUPABASE_URL }}"
+          echo "Project: ${{ secrets.SUPABASE_PROJECT_REF }}"
           echo "Commit: ${{ github.sha }}"
           echo "Triggered by: ${{ github.actor }}"
 
@@ -121,7 +107,7 @@ jobs:
         run: |
           echo "::error::Database migration failed!"
           echo "::error::Please check the logs above for details"
-          echo "::error::You may need to run migrations manually"
+          echo "::error::You may need to run migrations manually using: supabase db push"
           exit 1
 
       - name: 📝 Create deployment summary
@@ -133,10 +119,11 @@ jobs:
           echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Project:** ${{ secrets.SUPABASE_PROJECT_REF }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ All migrations applied successfully" >> $GITHUB_STEP_SUMMARY
+            echo "✅ All migrations applied successfully using Supabase CLI" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Migration failed - please check logs" >> $GITHUB_STEP_SUMMARY
           fi

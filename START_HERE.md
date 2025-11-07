@@ -1,58 +1,63 @@
-# 🚀 START HERE - Automated Database Migration Pipeline
+# 🚀 START HERE - Supabase CLI Database Migrations
 
 ## 📌 Quick Overview
 
-Your repository now has a **complete, production-ready GitHub Actions pipeline** that automatically deploys Supabase database migrations when you merge code to the main branch.
+This project uses the **official Supabase CLI** for database migrations with **automated GitHub Actions deployment**.
 
 **⏱️ Setup Time:** 5 minutes  
-**📦 Files Created:** 10 comprehensive files  
-**🎯 Status:** Ready to configure and use
+**🎯 Status:** Production-ready  
+**✅ Migration Tracking:** Built-in (no custom tables needed)  
+**✨ No Global CLI:** Everything via npm scripts (just `npm install`!)
 
 ---
 
-## ⚡ Get Started in 3 Steps
+## ⚡ Get Started in 2 Steps
 
-### 1️⃣ Configure Secrets (2 minutes)
-
-Add your Supabase credentials to GitHub:
-
-1. Go to your **Supabase Dashboard** → Settings → API
-2. Copy your **Project URL** and **service_role key**
-3. Go to your **GitHub Repository** → Settings → Secrets → Actions
-4. Add two secrets:
-   - `SUPABASE_URL` = Your project URL
-   - `SUPABASE_SERVICE_ROLE_KEY` = Your service role key
-
-**Detailed instructions:** [`.github/SECRETS_TEMPLATE.md`](.github/SECRETS_TEMPLATE.md)
-
-### 2️⃣ Validate Setup (1 minute)
-
-Run the validation script:
+### 1️⃣ Install Dependencies (1 minute)
 
 ```bash
-./.github/validate-setup.sh
+# Installs Supabase CLI locally (no global installation!)
+npm install
 ```
 
-**Expected output:** ✅ All checks passed!
+**That's it!** Supabase CLI is now available via npm scripts. ✨
 
-### 3️⃣ Test the Pipeline (2 minutes)
+### 2️⃣ Start Local Development OR Link to Production
 
-Deploy a test migration:
+**Option A: Local Development (Recommended)**
 
 ```bash
-# Create test migration
-npm run db:new
+# Start local Supabase
+npm run db:start
 
-# Test locally
-npm run db:migrate
+# Apply migrations
+npm run db:push
 
-# Deploy automatically
-git add supabase/migrations/
-git commit -m "test: verify GitHub Actions"
-git push origin main
-
-# Watch at: GitHub → Actions tab 🎉
+# Start Next.js
+npm run dev
 ```
+
+**Option B: Link to Production**
+
+```bash
+# Link to production
+npm run db:link
+
+# Apply migrations
+npm run db:push
+```
+
+### 3️⃣ Configure GitHub Actions (2 minutes)
+
+Add these secrets to **Repository → Settings → Secrets → Actions**:
+
+| Secret Name             | Value                  | Where to Find                                 |
+| ----------------------- | ---------------------- | --------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN` | Your access token      | https://supabase.com/dashboard/account/tokens |
+| `SUPABASE_PROJECT_REF`  | `hegqofubmkhmwjvpssdi` | Your project URL                              |
+| `SUPABASE_DB_PASSWORD`  | Your DB password       | Settings → Database                           |
+
+**✅ That's it! You're ready to deploy migrations.**
 
 ---
 
@@ -60,121 +65,73 @@ git push origin main
 
 ### 🎯 Choose Your Path
 
+**I want to see all npm commands:**
+→ Read [`NPM_SCRIPTS_GUIDE.md`](NPM_SCRIPTS_GUIDE.md) ⭐ All available npm scripts (no global CLI!)
+
 **I want to get started quickly:**
-→ Read [`GETTING_STARTED_PIPELINE.md`](GETTING_STARTED_PIPELINE.md) (5-minute guide)
+→ Read [`QUICK_START_SUPABASE_CLI.md`](QUICK_START_SUPABASE_CLI.md) (2-minute quickstart)
 
-**I want to understand the system:**
-→ Read [`DEPLOYMENT_PIPELINE_SUMMARY.md`](DEPLOYMENT_PIPELINE_SUMMARY.md) (overview)
+**I want complete setup details:**
+→ Read [`SUPABASE_CLI_SETUP.md`](SUPABASE_CLI_SETUP.md) (comprehensive guide)
 
-**I want complete details:**
-→ Read [`GITHUB_ACTIONS_SETUP.md`](GITHUB_ACTIONS_SETUP.md) (full guide)
+**I want local development with Docker:**
+→ Read [`LOCAL_DEVELOPMENT_SETUP.md`](LOCAL_DEVELOPMENT_SETUP.md) (local environment guide)
 
-**I need quick commands:**
-→ Check [`.github/QUICK_REFERENCE.md`](.github/QUICK_REFERENCE.md) (cheat sheet)
-
-**I want to see what was created:**
-→ Review [`PIPELINE_FILES_SUMMARY.md`](PIPELINE_FILES_SUMMARY.md) (file list)
+**I want to see what changed:**
+→ Read [`DEPRECATED_custom_migration_script.md`](DEPRECATED_custom_migration_script.md) (migration notes)
 
 ---
 
-## 📁 What Was Created
+## 🔄 Daily Workflow
 
-### Core Files
-- **`.github/workflows/deploy-migrations.yml`** - Main workflow (runs migrations)
-- **`.github/validate-setup.sh`** - Setup validation script
+### Create a New Migration
 
-### Documentation (8 guides)
-- **`START_HERE.md`** ← You are here
-- **`GETTING_STARTED_PIPELINE.md`** - Step-by-step tutorial
-- **`DEPLOYMENT_PIPELINE_SUMMARY.md`** - System overview
-- **`GITHUB_ACTIONS_SETUP.md`** - Complete setup guide
-- **`PIPELINE_FILES_SUMMARY.md`** - Files reference
-- **`.github/QUICK_REFERENCE.md`** - Quick commands
-- **`.github/SECRETS_TEMPLATE.md`** - Secrets configuration
-- **`.github/README_BADGE_TEMPLATE.md`** - Status badge
+```bash
+# Create migration file
+npm run db:migration:new add_user_profiles
 
-**Total:** ~2,200+ lines of production-ready code and documentation
+# Edit the generated file in supabase/migrations/
+# ... add your SQL ...
 
----
+# Test locally
+npm run db:push
 
-## 🎯 What This Does
-
-### Before (Manual Process)
-```
-1. Create migration file
-2. SSH into server
-3. Run migration manually
-4. Hope nothing breaks
-5. Debug if it does
-6. Document what you did
+# Commit and push (auto-deploys to production!)
+git add supabase/migrations/
+git commit -m "feat: add user profiles"
+git push origin main
 ```
 
-### After (Automated Pipeline)
-```
-1. Create migration file
-2. Push to main
-3. ✨ Everything else happens automatically!
-   - Tests connection
-   - Runs migration
-   - Logs everything
-   - Notifies on failure
-   - Creates deployment summary
+**That's it!** GitHub Actions automatically deploys to production. 🚀
+
+### Check Migration Status
+
+```bash
+# View linked project
+npm run db:status
+
+# List migrations
+npm run db:migration:list
 ```
 
-**Result:** Faster, safer, more consistent deployments
+### Monitor Deployments
+
+View in GitHub: **Actions** tab → **Deploy Database Migrations**
 
 ---
 
 ## ✨ Key Features
 
-✅ **Automatic Deployment** - Runs on merge to main  
+✅ **Automatic Deployment** - Runs on push to main  
+✅ **Built-in Migration Tracking** - No custom tables needed  
+✅ **Duplicate Prevention** - Supabase CLI handles it automatically  
+✅ **Rollback Support** - Built into Supabase CLI  
 ✅ **Change Detection** - Only runs when migrations change  
-✅ **Manual Trigger** - Emergency deployment option  
+✅ **Manual Trigger** - Emergency deployment option available  
 ✅ **Error Handling** - Graceful failures with clear messages  
-✅ **Detailed Logging** - See exactly what happened  
 ✅ **Security** - Credentials stored in GitHub Secrets  
 ✅ **Concurrency Control** - One migration at a time  
-✅ **Timeout Protection** - Won't hang forever  
-✅ **Deployment Summaries** - Quick status overview  
-✅ **Validation Script** - Verify configuration  
-
----
-
-## 🔍 Quick Reference
-
-### Daily Workflow
-```bash
-# Create migration
-npm run db:new
-
-# Test locally
-npm run db:migrate
-
-# Deploy
-git add supabase/migrations/
-git commit -m "feat: description"
-git push origin main
-# Auto-deploys! 🚀
-```
-
-### Monitoring
-```bash
-# View runs
-open https://github.com/[USERNAME]/[REPO]/actions
-
-# Or with GitHub CLI
-gh run list
-gh run watch
-```
-
-### Validation
-```bash
-# Check setup
-./.github/validate-setup.sh
-
-# View workflow
-cat .github/workflows/deploy-migrations.yml
-```
+✅ **Local Testing** - Full local development environment
 
 ---
 
@@ -187,9 +144,9 @@ Developer          GitHub              Supabase
     |                 |                    |
     |             [Trigger]                |
     |                 |                    |
-    |            [Run Workflow]            |
+    |      [Setup Supabase CLI]            |
     |                 |                    |
-    |                 |-- Run migrations-->|
+    |                 |-- supabase db push->|
     |                 |                    |
     |                 |<-- Success --------|
     |                 |                    |
@@ -202,14 +159,100 @@ Developer          GitHub              Supabase
 
 ---
 
+## 🎯 What This Does
+
+### Automatic Migration Tracking
+
+The Supabase CLI automatically:
+
+- ✅ Tracks which migrations have been applied
+- ✅ Runs only new/pending migrations
+- ✅ Prevents duplicate executions
+- ✅ Records migration history in Supabase
+- ✅ Provides rollback capabilities
+
+### No More Custom Scripts
+
+Previously, this project used custom Node.js migration scripts. Now:
+
+- ✅ Simpler setup (just install CLI)
+- ✅ Better reliability (official tool)
+- ✅ Less maintenance (Supabase handles it)
+- ✅ Built-in best practices
+
+---
+
+## 📁 Project Structure
+
+```
+zape-customers/
+├── .github/
+│   └── workflows/
+│       └── deploy-migrations.yml    ← GitHub Actions workflow
+│
+├── supabase/
+│   └── migrations/                  ← Your migration files
+│       ├── 20251106130020_create_quadra_ja_schema.sql
+│       ├── 20251106131138_update_courts_rls_for_public_access.sql
+│       ├── 20251106134238_add_club_owner_system.sql
+│       ├── 20251106140026_fix_profiles_rls_insert_policy.sql
+│       └── 20251107000000_create_migration_tracking.sql
+│
+├── QUICK_START_SUPABASE_CLI.md      ← Quick start guide
+├── SUPABASE_CLI_SETUP.md            ← Complete setup guide
+└── START_HERE.md                    ← You are here!
+```
+
+---
+
+## 🔍 Quick Reference
+
+### Common Commands
+
+```bash
+# Install dependencies (first time setup)
+npm install
+
+# Link project (first time setup)
+npm run db:link
+
+# Check status
+npm run db:status
+
+# Create migration
+npm run db:migration:new migration_name
+
+# Run migrations
+npm run db:push
+
+# List migrations
+npm run db:migration:list
+
+# Pull remote schema
+npm run db:pull
+```
+
+### Git Workflow
+
+```bash
+# Standard deployment workflow
+git add supabase/migrations/
+git commit -m "feat: add new feature"
+git push origin main
+# ✅ Auto-deploys via GitHub Actions!
+```
+
+---
+
 ## 🛡️ Security
 
 All credentials are protected:
 
-- ✅ Stored in GitHub Secrets (encrypted)
+- ✅ Access token stored in GitHub Secrets (encrypted)
 - ✅ Never exposed in logs
 - ✅ Not in code or commits
 - ✅ Access controlled by GitHub permissions
+- ✅ Database password only in GitHub Secrets
 
 **Your `.env` file stays local** - Never committed!
 
@@ -217,58 +260,29 @@ All credentials are protected:
 
 ## 🐛 Troubleshooting
 
+### "Failed to link project"?
+
+```bash
+# Ensure you have valid access token
+supabase link --project-ref hegqofubmkhmwjvpssdi
+# Enter your access token and DB password when prompted
+```
+
+### "Authentication failed" in GitHub Actions?
+
+- Check `SUPABASE_ACCESS_TOKEN` secret is set correctly
+- Verify token hasn't expired
+- Ensure token has necessary permissions
+
 ### Workflow doesn't trigger?
+
 - Check: Did migration files change?
 - Check: Pushed to `main` branch?
 - Check: GitHub Actions enabled?
 
-### "Missing secrets" error?
-- Add secrets: Settings → Secrets → Actions
-- Both required: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
-
-### "Connection failed"?
-- Verify Supabase project is active
-- Check credentials are correct
-- Confirm using service_role key (not anon key)
-
 ### Need more help?
-→ See [`GITHUB_ACTIONS_SETUP.md`](GITHUB_ACTIONS_SETUP.md) troubleshooting section
 
----
-
-## 📖 Documentation Map
-
-```
-START_HERE.md (you are here)
-    ├── GETTING_STARTED_PIPELINE.md ......... 5-minute setup guide
-    │   └── .github/SECRETS_TEMPLATE.md ..... Configure secrets
-    │       └── .github/validate-setup.sh ... Verify setup
-    │
-    ├── DEPLOYMENT_PIPELINE_SUMMARY.md ...... System overview
-    │   └── How it works
-    │   └── Features
-    │   └── Examples
-    │
-    ├── GITHUB_ACTIONS_SETUP.md ............. Complete guide
-    │   └── Prerequisites
-    │   └── Setup instructions
-    │   └── Troubleshooting
-    │   └── Advanced config
-    │
-    ├── .github/QUICK_REFERENCE.md .......... Daily commands
-    │   └── Common operations
-    │   └── Git workflows
-    │   └── Quick fixes
-    │
-    ├── .github/README_BADGE_TEMPLATE.md .... Status badges
-    │   └── Badge options
-    │   └── README templates
-    │
-    └── PIPELINE_FILES_SUMMARY.md ........... Files reference
-        └── What was created
-        └── File purposes
-        └── Quick access guide
-```
+→ See [`SUPABASE_CLI_SETUP.md`](SUPABASE_CLI_SETUP.md) for detailed troubleshooting
 
 ---
 
@@ -276,133 +290,158 @@ START_HERE.md (you are here)
 
 Complete these to get started:
 
-- [ ] Read this document (START_HERE.md)
-- [ ] Add GitHub Secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-- [ ] Run validation script (`./.github/validate-setup.sh`)
-- [ ] Review workflow file (`.github/workflows/deploy-migrations.yml`)
-- [ ] Test with a dummy migration
-- [ ] Verify in GitHub Actions tab
-- [ ] Add README badge (optional)
-- [ ] Share docs with team
+- [ ] Install Supabase CLI globally
+- [ ] Link local project to Supabase
+- [ ] Add GitHub Secrets (3 required)
+- [ ] Test local migration with `supabase db push`
+- [ ] Push test migration to trigger GitHub Actions
+- [ ] Verify deployment in Actions tab
+- [ ] Read Supabase CLI documentation
 
-**Time to complete:** ~10-15 minutes
-
----
-
-## 🎓 Next Steps
-
-### Immediate (Required)
-1. **Configure secrets** - [`.github/SECRETS_TEMPLATE.md`](.github/SECRETS_TEMPLATE.md)
-2. **Validate setup** - Run `./.github/validate-setup.sh`
-3. **Test pipeline** - Deploy a test migration
-
-### Soon (Recommended)
-4. **Add README badge** - [`.github/README_BADGE_TEMPLATE.md`](.github/README_BADGE_TEMPLATE.md)
-5. **Review workflow** - Understand what it does
-6. **Share with team** - Everyone should know
-
-### Later (Optional)
-7. **Set up environments** - Staging/production separation
-8. **Add notifications** - Slack/Discord alerts
-9. **Schedule backups** - Before major migrations
+**Time to complete:** ~10 minutes
 
 ---
 
 ## 💡 Pro Tips
 
 ### Best Practices
-✅ Always test locally first (`npm run db:migrate`)  
+
+✅ Always test locally first (`supabase db push`)  
 ✅ Use descriptive migration names  
-✅ Include rollback instructions in comments  
 ✅ Keep migrations small and focused  
-✅ Review the generated deployment summary  
-✅ Monitor the Actions tab after merging  
+✅ Use idempotent SQL (`IF NOT EXISTS`, `OR REPLACE`)  
+✅ Monitor the Actions tab after pushing  
+✅ Add comments explaining complex changes
 
 ### Common Pitfalls to Avoid
-❌ Don't skip local testing  
-❌ Don't commit `.env` files  
-❌ Don't use the anon key (use service_role)  
-❌ Don't run destructive migrations without backup  
-❌ Don't merge without review  
+
+❌ Don't modify migration files after they're applied  
+❌ Don't delete applied migration files  
+❌ Don't commit `.env` or `.supabase/` directories  
+❌ Don't run migrations directly in SQL Editor (bypasses tracking)  
+❌ Don't skip local testing
+
+---
+
+## 📖 Existing Migrations
+
+Your project already has these migrations:
+
+1. ✅ `20251106130020_create_quadra_ja_schema.sql` - Initial schema
+2. ✅ `20251106131138_update_courts_rls_for_public_access.sql` - RLS policies
+3. ✅ `20251106134238_add_club_owner_system.sql` - Club ownership
+4. ✅ `20251106140026_fix_profiles_rls_insert_policy.sql` - Profile policies
+5. ✅ `20251107000000_create_migration_tracking.sql` - Migration tracking
+
+All migrations are preserved and work with Supabase CLI!
+
+---
+
+## 🔄 Migrated from Custom Scripts
+
+This project **previously used custom Node.js scripts**. We've now migrated to the **official Supabase CLI** for:
+
+- ✅ Simpler setup
+- ✅ Better reliability
+- ✅ Built-in migration tracking
+- ✅ Official support
+- ✅ Less maintenance
+
+Old files have been moved to `.deprecated/` folder for reference.
+
+See: [`DEPRECATED_custom_migration_script.md`](DEPRECATED_custom_migration_script.md) for details.
+
+---
+
+## 🎓 Next Steps
+
+### Immediate (Required)
+
+1. **Install dependencies** - `npm install` (includes Supabase CLI!)
+2. **Start local dev** - `npm run db:start` (or link to production: `npm run db:link`)
+3. **Configure GitHub Secrets** - Add 3 secrets
+4. **Test deployment** - Create and push a test migration
+
+### Soon (Recommended)
+
+5. **Review workflow** - Check `.github/workflows/deploy-migrations.yml`
+6. **Read full docs** - [`SUPABASE_CLI_SETUP.md`](SUPABASE_CLI_SETUP.md)
+7. **Share with team** - Everyone should use CLI
+
+### Later (Recommended for Development)
+
+8. **Set up local development** - See [`LOCAL_DEVELOPMENT_SETUP.md`](LOCAL_DEVELOPMENT_SETUP.md)
+9. **Add notifications** - Slack/Discord alerts for deployments
+10. **Environment branching** - Separate staging/production
 
 ---
 
 ## 📞 Getting Help
 
-### Quick Links
-| Need | Document |
-|------|----------|
-| Quick setup | [`GETTING_STARTED_PIPELINE.md`](GETTING_STARTED_PIPELINE.md) |
-| Full details | [`GITHUB_ACTIONS_SETUP.md`](GITHUB_ACTIONS_SETUP.md) |
-| Daily use | [`.github/QUICK_REFERENCE.md`](.github/QUICK_REFERENCE.md) |
-| Configure secrets | [`.github/SECRETS_TEMPLATE.md`](.github/SECRETS_TEMPLATE.md) |
-| Add badge | [`.github/README_BADGE_TEMPLATE.md`](.github/README_BADGE_TEMPLATE.md) |
-| Files list | [`PIPELINE_FILES_SUMMARY.md`](PIPELINE_FILES_SUMMARY.md) |
-| System overview | [`DEPLOYMENT_PIPELINE_SUMMARY.md`](DEPLOYMENT_PIPELINE_SUMMARY.md) |
+### Documentation
+
+| Need              | Document                                                                         |
+| ----------------- | -------------------------------------------------------------------------------- |
+| NPM scripts       | [`NPM_SCRIPTS_GUIDE.md`](NPM_SCRIPTS_GUIDE.md) ⭐                                |
+| Quick start       | [`QUICK_START_SUPABASE_CLI.md`](QUICK_START_SUPABASE_CLI.md)                     |
+| Complete setup    | [`SUPABASE_CLI_SETUP.md`](SUPABASE_CLI_SETUP.md)                                 |
+| Local development | [`LOCAL_DEVELOPMENT_SETUP.md`](LOCAL_DEVELOPMENT_SETUP.md)                       |
+| Migration notes   | [`DEPRECATED_custom_migration_script.md`](DEPRECATED_custom_migration_script.md) |
 
 ### External Resources
-- [GitHub Actions Docs](https://docs.github.com/en/actions)
-- [Supabase CLI Guide](https://supabase.com/docs/guides/cli)
-- [PostgreSQL Docs](https://www.postgresql.org/docs/)
+
+- [Supabase CLI Docs](https://supabase.com/docs/guides/cli)
+- [Local Development Guide](https://supabase.com/docs/guides/cli/local-development)
+- [Migration Best Practices](https://supabase.com/docs/guides/cli/local-development#database-migrations)
 
 ---
 
 ## 🎉 You're Ready!
 
-Your automated database migration pipeline is **fully configured and ready to use**.
+Your Supabase CLI migration system is **fully configured and ready to use**.
 
 ### What you have:
-✅ Production-ready GitHub Actions workflow  
-✅ Comprehensive documentation (8 guides)  
-✅ Validation tools  
+
+✅ Official Supabase CLI setup  
+✅ GitHub Actions automation  
+✅ Built-in migration tracking  
+✅ Comprehensive documentation  
 ✅ Security best practices  
-✅ Quick reference materials  
-✅ Examples and templates  
+✅ Local and production workflows
 
-### What you need to do:
-1. Configure GitHub Secrets (2 minutes)
-2. Run validation script (1 minute)
-3. Test with a migration (2 minutes)
-4. Start using automated deployments! 🚀
-
----
-
-## 🚀 Ready to Start?
-
-**Next Step:** Read [`GETTING_STARTED_PIPELINE.md`](GETTING_STARTED_PIPELINE.md)
-
-It's a 5-minute guide that will walk you through:
-- Configuring secrets
-- Testing the pipeline
-- Deploying your first automated migration
-
-**Or jump right in:**
+### Start using it:
 
 ```bash
-# 1. Add secrets in GitHub (Settings → Secrets)
-# 2. Validate setup
-./.github/validate-setup.sh
+# 1. Install dependencies
+npm install
 
-# 3. Create & deploy test migration
-npm run db:new
-npm run db:migrate
+# 2. Start local development
+npm run db:start
+npm run db:push
+
+# 3. Create migration
+npm run db:migration:new my_feature
+
+# 4. Test locally
+npm run db:push
+
+# 5. Deploy to production
 git add supabase/migrations/
-git commit -m "test: GitHub Actions pipeline"
+git commit -m "feat: add my feature"
 git push origin main
 
-# 4. Watch it deploy automatically!
-# GitHub → Actions tab
+# 6. Watch it deploy!
+# GitHub → Actions tab 🚀
 ```
 
 ---
 
-**Questions?** Check the documentation above or run `./.github/validate-setup.sh` to verify your setup.
+**Questions?** Check [`SUPABASE_CLI_SETUP.md`](SUPABASE_CLI_SETUP.md) for detailed guidance.
 
 **Happy deploying! 🎊**
 
 ---
 
-*Generated for: QuadraJá Sports Court Booking Platform*  
-*Pipeline Version: 1.0*  
-*Last Updated: November 2025*
-
+_Project: QuadraJá Sports Court Booking Platform_  
+_Migration System: Supabase CLI (Official)_  
+_Last Updated: November 2025_
