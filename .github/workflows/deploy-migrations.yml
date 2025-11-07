@@ -33,7 +33,6 @@ jobs:
 
     environment:
       name: production
-      url: https://supabase.com/dashboard/project/${{ secrets.SUPABASE_PROJECT_REF }}
 
     steps:
       - name: 📥 Checkout code
