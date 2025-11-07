@@ -1,0 +1,158 @@
+name: Deploy Database Migrations
+
+# Trigger on push to main branch (including merges)
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+      - 'run-migrations-pg.js'
+      - '.github/workflows/deploy-migrations.yml'
+
+  # Allow manual workflow dispatch for emergency deployments
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual migration deployment'
+
+# Ensure only one migration runs at a time
+concurrency:
+  group: db-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    
+    # Set a timeout to prevent hanging jobs
+    timeout-minutes: 10
+    
+    environment:
+      name: production
+      url: https://supabase.com/dashboard/project/${{ secrets.SUPABASE_PROJECT_REF }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check for migration changes
+        id: check_changes
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual trigger - running migrations"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            if echo "$CHANGED_FILES" | grep -q "supabase/migrations/"; then
+              echo "Migration files changed"
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "No migration file changes detected"
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: 📋 List changed files
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "Changed files in this push:"
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} || echo "Initial commit or manual trigger"
+
+      - name: 🔧 Setup Node.js
+        if: steps.check_changes.outputs.has_changes == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: npm ci --only=production
+
+      - name: 🔐 Prepare environment
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          # Create .env file from secrets
+          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          
+          # Verify .env was created
+          if [ ! -f .env ]; then
+            echo "Error: .env file not created"
+            exit 1
+          fi
+          
+          echo "✅ Environment configured"
+
+      - name: 🗃️ List migrations to be run
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "📂 Migration files found:"
+          ls -la supabase/migrations/ || echo "No migrations directory"
+          echo ""
+          echo "Migration files to be executed:"
+          find supabase/migrations -name "*.sql" | sort
+
+      - name: 🚀 Run database migrations
+        if: steps.check_changes.outputs.has_changes == 'true'
+        id: migrate
+        run: |
+          echo "Starting migration process..."
+          node run-migrations-pg.js
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: ✅ Migration success
+        if: success() && steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "✨ Database migrations completed successfully!"
+          echo "Deployed to: ${{ secrets.SUPABASE_URL }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.actor }}"
+
+      - name: ❌ Migration failure notification
+        if: failure() && steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "::error::Database migration failed!"
+          echo "::error::Please check the logs above for details"
+          echo "::error::You may need to run migrations manually"
+          exit 1
+
+      - name: 📝 Create deployment summary
+        if: always() && steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "## 🗃️ Database Migration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ All migrations applied successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Migration failed - please check logs" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📂 Migration Files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          find supabase/migrations -name "*.sql" | sort >> $GITHUB_STEP_SUMMARY || echo "No migrations found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: ⏭️ Skip notification
+        if: steps.check_changes.outputs.has_changes == 'false'
+        run: |
+          echo "ℹ️ No migration changes detected, skipping deployment"
+          echo "## 🗃️ Database Migration Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No changes to migration files detected in this push." >> $GITHUB_STEP_SUMMARY
+
